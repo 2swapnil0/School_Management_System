@@ -15,59 +15,75 @@ import Navbar from "../components/parentnavbar";
 // Register fonts
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
 
-const YourComponent = () => {
-  const [admissionNumber, setAdmissionNumber] = useState('');
+const AdmitCardPage = () => {
+  const [admissionNumber, setAdmissionNumber] = useState("");
   const [grades, setGrades] = useState(null);
 
-  const handleAdmissionNumberChange = (event) => {
-      setAdmissionNumber(event.target.value);
+  const handleAdmissionNumberChange = (e) => {
+    setAdmissionNumber(e.target.value);
   };
 
-  const fetchGrades = () => {
-      fetch(`http://localhost:8000/api/grades/${admissionNumber}`)
-          .then(response => response.json())
-          .then(data => {
-              // Assuming the response data structure is { subject1: marks1, subject2: marks2, ... }
-              setGrades(data);
-          })
-          .catch(error => {
-              console.error('Error fetching grades:', error);
-          });
+  const fetchGrades = async () => {
+    try {
+      const response = await axios.get(
+        `http://localhost:8000/api/grades/${admissionNumber}`
+      );
+      setGrades(response.data);
+    } catch (error) {
+      console.error("Error:", error);
+      // Handle error
+    }
   };
 
   const generatePDFReport = () => {
-      if (grades) {
-          // Define table headers
-          const tableHeaders = ['Subject', 'Maximum Marks', 'Marks Obtained'];
+    if (!grades) {
+        console.error("No grades data available");
+        return;
+    }
 
-          // Filter out unwanted fields and calculate maximum marks for each subject (assuming it's 100)
-          const subjectData = Object.keys(grades).map(subject => {
-              return [subject, 100, grades[subject]];
-          });
+    const maxMarks = 100;
 
-          // Define table body
-          const tableBody = [tableHeaders, ...subjectData];
+    const documentDefinition = {
+        content: [
+            { text: "Admit Card", style: "header" },
+            { text: `Admission Number: ${admissionNumber}`, margin: [0, 0, 0, 10] },
+            { text: "Subject Grades:", style: "subheader" },
+            {
+                table: {
+                    headerRows: 1,
+                    widths: ['*', 'auto', 'auto'],
+                    body: [
+                        ['Subject', 'Marks Obtained', 'Maximum Marks'],
+                        ['English', grades.english, maxMarks],
+                        ['Hindi', grades.hindi, maxMarks],
+                        ['Marathi', grades.marathi, maxMarks],
+                        ['Maths', grades.maths, maxMarks],
+                        ['Science', grades.science, maxMarks],
+                        ['Social Studies', grades.socialStudies, maxMarks],
+                        ['Drawing', grades.drawing, maxMarks],
+                        ['Attendance', grades.attendance, maxMarks],
+                    ]
+                },
+                margin: [0, 0, 0, 10]
+            },
+        ],
+        styles: {
+            header: {
+                fontSize: 22,
+                bold: true,
+                alignment: "center",
+                margin: [0, 0, 0, 20]
+            },
+            subheader: {
+                fontSize: 18,
+                bold: true,
+                margin: [0, 0, 0, 10]
+            }
+        }
+    };
 
-          // Define document definition for PDF
-          const docDefinition = {
-              content: [
-                  { text: 'Admission Number: ' + admissionNumber },
-                  { text: '\nGrades:\n', fontSize: 14 },
-                  {
-                      table: {
-                          widths: ['*', '*', '*'],
-                          body: tableBody
-                      }
-                  }
-              ]
-          };
-
-          // Generate PDF
-          pdfMake.createPdf(docDefinition).download('report_card.pdf');
-      }
-  };
-  
-
+    pdfMake.createPdf(documentDefinition).open();
+};
   
 
   return (
@@ -110,9 +126,4 @@ const YourComponent = () => {
   );
 };
 
-export default YourComponent;
-
-
-
-
-// http://localhost:8000/api/grades/${admissionNumber}
+export default AdmitCardPage;
